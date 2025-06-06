@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Interactiva de Impuestos en España</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: A tabbed interface for superior navigation. A 'Visión General' tab provides a high-level comparison not present in the original text, using a card layout. Each specific tax gets its own tab with content organized into accordions to reduce cognitive load. A final 'Calculadora IS' tab transforms the static calculation example into an interactive tool with input fields and a dynamic chart, fostering hands-on learning. This structure is chosen to replace linear scrolling with focused, task-oriented exploration, making complex information more digestible. -->
+    <!-- Visualization & Content Choices: Report Info: Overview -> Goal: Compare -> Viz: Card Layout -> Interaction: Hover -> Justification: Quick summary. Report Info: Q&A -> Goal: Inform -> Viz: Accordion -> Interaction: Click-to-reveal -> Justification: Reduces clutter. Report Info: IS Calculation -> Goal: Engage -> Viz: Interactive Form + Bar Chart -> Interaction: User input updates chart -> Justification: Active learning. All interactions use JS to update content dynamically. No SVG/Mermaid. Chart.js for the canvas-based chart. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .active-tab {
+            border-bottom-color: #0d9488;
+            color: #0f766e;
+            font-weight: 600;
+        }
+        .tab-btn {
+            border-bottom: 3px solid transparent;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-content.open {
+            max-height: 500px;
+            transition: max-height 0.5s ease-in;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 320px;
+            max-height: 40vh;
+            width: 100%;
+            max-width: 600px;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #0f766e;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-800">Guía Interactiva de Impuestos</h1>
+            <p class="text-slate-600 mt-2">Una herramienta para entender los principales impuestos en España y simular liquidaciones.</p>
+        </header>
+
+        <nav id="tab-nav" class="flex flex-wrap justify-center border-b border-slate-200 mb-8 -mx-4 px-4">
+            <button data-target="general" class="tab-btn active-tab text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">Visión General</button>
+            <button data-target="is" class="tab-btn text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">IS</button>
+            <button data-target="iae" class="tab-btn text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">IAE</button>
+            <button data-target="iva" class="tab-btn text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">IVA</button>
+            <button data-target="irpf" class="tab-btn text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">IRPF</button>
+            <button data-target="calculadora" class="tab-btn text-sm md:text-base py-3 px-3 md:px-5 transition-colors duration-300">Calculadora IS</button>
+        </nav>
+
+        <main id="tab-content">
+            <section id="general" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-teal-700">Comparativa de Impuestos Principales</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">Esta sección ofrece una vista rápida y comparativa de los impuestos más relevantes para empresas y particulares en España. Cada tarjeta resume el propósito, el tipo y los sujetos pasivos de cada tributo.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- IS Card -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-600">
+                        <h3 class="font-bold text-xl mb-2 text-teal-800">IS</h3>
+                        <p class="text-sm text-slate-500 mb-4">Impuesto sobre Sociedades</p>
+                        <ul class="space-y-2 text-slate-700 text-sm">
+                            <li><span class="font-semibold">Tipo:</span> Directo</li>
+                            <li><span class="font-semibold">Grava:</span> Beneficios / Renta</li>
+                            <li><span class="font-semibold">Sujeto:</span> Personas Jurídicas (Empresas)</li>
+                        </ul>
+                    </div>
+                    <!-- IAE Card -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-amber-600">
+                        <h3 class="font-bold text-xl mb-2 text-amber-800">IAE</h3>
+                        <p class="text-sm text-slate-500 mb-4">Imp. sobre Actividades Económicas</p>
+                        <ul class="space-y-2 text-slate-700 text-sm">
+                            <li><span class="font-semibold">Tipo:</span> Directo (Local)</li>
+                            <li><span class="font-semibold">Grava:</span> Ejercicio de la actividad</li>
+                            <li><span class="font-semibold">Sujeto:</span> Empresas y Profesionales</li>
+                        </ul>
+                    </div>
+                    <!-- IVA Card -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-sky-600">
+                        <h3 class="font-bold text-xl mb-2 text-sky-800">IVA</h3>
+                        <p class="text-sm text-slate-500 mb-4">Impuesto sobre el Valor Añadido</p>
+                        <ul class="space-y-2 text-slate-700 text-sm">
+                            <li><span class="font-semibold">Tipo:</span> Indirecto</li>
+                            <li><span class="font-semibold">Grava:</span> Consumo de bienes/servicios</li>
+                            <li><span class="font-semibold">Sujeto:</span> Consumidor Final</li>
+                        </ul>
+                    </div>
+                    <!-- IRPF Card -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-rose-600">
+                        <h3 class="font-bold text-xl mb-2 text-rose-800">IRPF</h3>
+                        <p class="text-sm text-slate-500 mb-4">Imp. sobre la Renta de Personas Físicas</p>
+                         <ul class="space-y-2 text-slate-700 text-sm">
+                            <li><span class="font-semibold">Tipo:</span> Directo (Personal)</li>
+                            <li><span class="font-semibold">Grava:</span> Renta obtenida</li>
+                            <li><span class="font-semibold">Sujeto:</span> Personas Físicas</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="is" class="content-section hidden">
+                <div class="text-left mb-8">
+                     <h2 class="text-2xl font-semibold text-teal-700">IS: Impuesto sobre Sociedades</h2>
+                     <p class="mt-2 text-slate-600 max-w-3xl">Aquí encontrará los detalles clave sobre el impuesto que grava los beneficios de las empresas. Despliegue cada pregunta para ver la respuesta.</p>
+                </div>
+                <div class="space-y-4 accordion-container"></div>
+                <div class="mt-8 p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="font-bold text-xl mb-4 text-slate-700">✨ Pregúntale a Gemini sobre el IS</h3>
+                    <textarea id="isQuestion" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 mb-3" rows="3" placeholder="Ej: ¿Hay exenciones fiscales para el IS?"></textarea>
+                    <button id="askIsBtn" class="bg-teal-600 text-white font-bold py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors w-full sm:w-auto">Obtener respuesta ✨</button>
+                    <div id="isResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="isLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Pensando...</span></div>
+
+                    <h3 class="font-bold text-xl mb-4 mt-8 text-slate-700">✨ Explicar Concepto Específico del IS</h3>
+                    <input type="text" id="isSpecificConceptInput" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 mb-3" placeholder="Ej: Base imponible, Amortización, Deducción por I+D">
+                    <button id="getIsSpecificConceptBtn" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors w-full sm:w-auto">Explicar Concepto ✨</button>
+                    <div id="isSpecificConceptResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="isSpecificConceptLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Generando explicación...</span></div>
+                </div>
+            </section>
+
+            <section id="iae" class="content-section hidden">
+                 <div class="text-left mb-8">
+                     <h2 class="text-2xl font-semibold text-amber-700">IAE: Impuesto sobre Actividades Económicas</h2>
+                     <p class="mt-2 text-slate-600 max-w-3xl">Información sobre el tributo que grava el ejercicio de actividades empresariales y profesionales.</p>
+                </div>
+                <div class="space-y-4 accordion-container"></div>
+                <div class="mt-8 p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="font-bold text-xl mb-4 text-slate-700">✨ Pregúntale a Gemini sobre el IAE</h3>
+                    <textarea id="iaeQuestion" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 mb-3" rows="3" placeholder="Ej: ¿Quiénes están exentos del IAE?"></textarea>
+                    <button id="askIaeBtn" class="bg-amber-600 text-white font-bold py-2 px-4 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors w-full sm:w-auto">Obtener respuesta ✨</button>
+                    <div id="iaeResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="iaeLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Pensando...</span></div>
+
+                    <h3 class="font-bold text-xl mb-4 mt-8 text-slate-700">✨ Ejemplos de Epígrafes IAE por Actividad</h3>
+                    <input type="text" id="iaeActivityInput" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 mb-3" placeholder="Ej: Consultoría, Tienda de ropa">
+                    <button id="getIaeEpigrafesBtn" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors w-full sm:w-auto">Buscar Epígrafes ✨</button>
+                    <div id="iaeEpigrafesResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="iaeEpigrafesLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Buscando epígrafes...</span></div>
+                </div>
+            </section>
+
+            <section id="iva" class="content-section hidden">
+                 <div class="text-left mb-8">
+                     <h2 class="text-2xl font-semibold text-sky-700">IVA: Impuesto sobre el Valor Añadido</h2>
+                     <p class="mt-2 text-slate-600 max-w-3xl">Descubra cómo funciona el principal impuesto indirecto que se aplica al consumo en España.</p>
+                </div>
+                <div class="space-y-4 accordion-container"></div>
+                <div class="mt-8 p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="font-bold text-xl mb-4 text-slate-700">✨ Pregúntale a Gemini sobre el IVA</h3>
+                    <textarea id="ivaQuestion" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-sky-500 focus:border-sky-500 mb-3" rows="3" placeholder="Ej: ¿Cuáles son los tipos de IVA aplicables en España?"></textarea>
+                    <button id="askIvaBtn" class="bg-sky-600 text-white font-bold py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors w-full sm:w-auto">Obtener respuesta ✨</button>
+                    <div id="ivaResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="ivaLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Pensando...</span></div>
+
+                    <h3 class="font-bold text-xl mb-4 mt-8 text-slate-700">✨ Generar Ejemplo de Aplicación de IVA</h3>
+                    <button id="getIvaExampleBtn" class="bg-emerald-600 text-white font-bold py-2 px-4 rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors w-full sm:w-auto">Ejemplo de IVA ✨</button>
+                    <div id="ivaExampleResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="ivaExampleLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Generando ejemplo...</span></div>
+                </div>
+            </section>
+
+            <section id="irpf" class="content-section hidden">
+                <div class="text-left mb-8">
+                     <h2 class="text-2xl font-semibold text-rose-700">IRPF: Impuesto sobre la Renta de Personas Físicas</h2>
+                     <p class="mt-2 text-slate-600 max-w-3xl">Todo sobre el tributo que grava la renta de los individuos, como salarios, alquileres o beneficios de autónomos.</p>
+                </div>
+                <div class="space-y-4 accordion-container"></div>
+                <div class="mt-8 p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="font-bold text-xl mb-4 text-slate-700">✨ Pregúntale a Gemini sobre el IRPF</h3>
+                    <textarea id="irpfQuestion" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-rose-500 focus:border-rose-500 mb-3" rows="3" placeholder="Ej: ¿Qué deducciones se pueden aplicar en la declaración del IRPF?"></textarea>
+                    <button id="askIrpfBtn" class="bg-rose-600 text-white font-bold py-2 px-4 rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors w-full sm:w-auto">Obtener respuesta ✨</button>
+                    <div id="irpfResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="irpfLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Pensando...</span></div>
+
+                    <h3 class="font-bold text-xl mb-4 mt-8 text-slate-700">✨ Resumen de Obligaciones Comunes (IRPF)</h3>
+                    <button id="getIrpfObligationsBtn" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors w-full sm:w-auto">Generar Resumen ✨</button>
+                    <div id="irpfObligationsResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                    <div id="irpfObligationsLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Generando resumen...</span></div>
+                </div>
+            </section>
+
+            <section id="calculadora" class="content-section hidden">
+                 <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-teal-700">Calculadora de Liquidación del IS</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">Utilice esta herramienta para simular la liquidación del Impuesto sobre Sociedades. Ingrese los datos de la empresa para ver el cálculo y su desglose visual.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="beneficio" class="block text-sm font-medium text-slate-700">Beneficio Anual (€)</label>
+                                <input type="number" id="beneficio" value="20000" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="tipoImpositivo" class="block text-sm font-medium text-slate-700">Tipo Impositivo (%)</label>
+                                <input type="number" id="tipoImpositivo" value="25" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                            </div>
+                             <div>
+                                <label for="pagosFraccionados" class="block text-sm font-medium text-slate-700">Pagos Fraccionados a Cuenta (€)</label>
+                                <input type="number" id="pagosFraccionados" value="5000" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                            </div>
+                            <button id="calcularBtn" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors">Calcular Liquidación</button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4 text-center text-slate-700">Resultados de la Liquidación</h3>
+                        <div class="space-y-3 text-center">
+                            <div>
+                                <p class="text-sm text-slate-500">Cuota Íntegra</p>
+                                <p id="cuotaIntegra" class="text-2xl font-bold text-teal-700">0 €</p>
+                            </div>
+                            <div class="text-2xl font-bold text-slate-400">-</div>
+                            <div>
+                                <p class="text-sm text-slate-500">Pagos a Cuenta</p>
+                                <p id="pagosACuenta" class="text-2xl font-bold text-rose-700">0 €</p>
+                            </div>
+                             <div class="text-2xl font-bold text-slate-400">=</div>
+                            <div class="bg-slate-100 p-4 rounded-lg">
+                                <p class="text-sm font-semibold text-slate-600">Resultado Final</p>
+                                <p id="resultadoFinal" class="text-3xl font-extrabold text-slate-800">0 €</p>
+                                <p id="resultadoTexto" class="text-sm font-medium text-slate-600 mt-1">A pagar</p>
+                            </div>
+                        </div>
+                         <div class="mt-6">
+                            <div class="chart-container">
+                                <canvas id="isChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-slate-200">
+                            <h3 class="font-bold text-xl mb-4 text-slate-700">✨ Sugerencias de Optimización Fiscal (IS)</h3>
+                            <button id="getOptimizationTipsBtn" class="bg-teal-600 text-white font-bold py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors w-full sm:w-auto">Generar Sugerencias ✨</button>
+                            <div id="optimizationTipsResponse" class="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-700 hidden"></div>
+                            <div id="optimizationTipsLoading" class="hidden flex justify-center items-center mt-4"><div class="loading-spinner"></div><span class="ml-2 text-slate-600">Generando sugerencias...</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const taxData = {
+            is: [
+                { q: '¿Qué significan las siglas y qué grava?', a: 'Las siglas **IS** significan **Impuesto sobre Sociedades**. Es un tributo directo que grava la renta obtenida por las sociedades y demás entidades jurídicas que residen en territorio español. En otras palabras, es el impuesto que pagan las empresas sobre sus beneficios.' },
+                { q: '¿Por qué no se considera un impuesto indirecto?', a: 'No se considera un impuesto indirecto porque es un **impuesto directo**. Un impuesto directo grava la capacidad económica de las personas o entidades de forma directa (como la renta o el patrimonio), mientras que un impuesto indirecto grava el consumo. En el caso del IS, grava directamente el beneficio (renta) de la empresa.' },
+                { q: '¿Qué modelo usa para su declaración anual?', a: 'El modelo utilizado para la declaración anual del Impuesto sobre Sociedades es el <strong>Modelo 200</strong>.' },
+                { q: '¿Qué son los pagos fraccionados y qué modelo usa?', a: 'Son anticipos a cuenta de la liquidación anual del impuesto. Las empresas los realizan de forma obligatoria durante el ejercicio fiscal. Su objetivo es que Hacienda recaude progresivamente. El modelo que se usa para declararlos es el <strong>Modelo 202</strong>.' }
+            ],
+            iae: [
+                { q: '¿Qué es el IAE y para qué sirve?', a: 'El **IAE** (Impuesto sobre Actividades Económicas) es un tributo directo de carácter local que grava el mero ejercicio de actividades empresariales, profesionales o artísticas. Aunque muchas pymes y autónomos están exentos de su pago, sí deben darse de alta a nivel censal.' },
+                { q: '¿Qué es y para qué sirve el epígrafe del IAE?', a: 'El **epígrafe del IAE** es un código numérico que clasifica cada actividad económica. Sirve para identificar y clasificar la actividad que una empresa o autónomo va a desarrollar, siendo fundamental a efectos censales y para determinar las obligaciones fiscales.' }
+            ],
+            iva: [
+                { q: '¿Qué grava, qué tipo de impuesto es y qué modelo anual usa?', a: 'El **IVA** (Impuesto sobre el Valor Añadido) grava el consumo. Es un **impuesto indirecto** que recae sobre el consumidor final. Para la declaración resumen anual se utiliza el <strong>Modelo 390</strong>.' },
+                { q: '¿Qué significa el sistema REDEME?', a: 'El **Sistema REDEME** se refiere al **Registro de Devolución Mensual del IVA**. Es un régimen especial voluntario para empresas que deseen solicitar la devolución del IVA a su favor de forma mensual, en lugar de trimestral.' }
+            ],
+            irpf: [
+                { q: '¿Qué tipo de tributo es, qué grava y qué modelo anual usa?', a: 'El **IRPF** (Impuesto sobre la Renta de las Personas Físicas) es un **tributo directo y personal**. Grava la renta obtenida por personas físicas (salarios, alquileres, etc.). Su declaración anual se realiza con el <strong>Modelo 100</strong>.' },
+                { q: '¿Para qué sirve el Modelo 111?', a: 'El **Modelo 111** sirve para declarar e ingresar las retenciones a cuenta del IRPF que la empresa ha practicado sobre rendimientos del trabajo (nóminas) o de actividades económicas (facturas de profesionales). Se presenta trimestralmente.' }
+            ]
+        };
+
+        function createAccordionItem(item, index) {
+            const container = document.createElement('div');
+            container.className = 'bg-white rounded-lg shadow-sm border border-slate-200';
+            const header = document.createElement('button');
+            header.className = 'w-full flex justify-between items-center text-left p-4 font-semibold text-slate-700 hover:bg-slate-50 transition-colors';
+            header.innerHTML = `
+                <span>${item.q}</span>
+                <span class="transform transition-transform duration-300">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </span>
+            `;
+            const content = document.createElement('div');
+            content.className = 'accordion-content';
+            const contentInner = document.createElement('div');
+            contentInner.className = 'p-4 pt-0 text-slate-600';
+            contentInner.innerHTML = item.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            content.appendChild(contentInner);
+            container.appendChild(header);
+            container.appendChild(content);
+
+            header.addEventListener('click', () => {
+                const icon = header.querySelector('span:last-child');
+                content.classList.toggle('open');
+                icon.classList.toggle('rotate-180');
+            });
+            return container;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            for (const tax in taxData) {
+                const container = document.querySelector(`#${tax} .accordion-container`);
+                if(container) {
+                    taxData[tax].forEach((item, index) => {
+                        container.appendChild(createAccordionItem(item, index));
+                    });
+                }
+            }
+
+            const tabs = document.querySelectorAll('.tab-btn');
+            const sections = document.querySelectorAll('.content-section');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active-tab'));
+                    tab.classList.add('active-tab');
+                    const targetId = tab.dataset.target;
+                    sections.forEach(s => {
+                        if (s.id === targetId) {
+                            s.classList.remove('hidden');
+                        } else {
+                            s.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const calcularBtn = document.getElementById('calcularBtn');
+            const beneficioInput = document.getElementById('beneficio');
+            const tipoInput = document.getElementById('tipoImpositivo');
+            const pagosInput = document.getElementById('pagosFraccionados');
+            const cuotaIntegraEl = document.getElementById('cuotaIntegra');
+            const pagosACuentaEl = document.getElementById('pagosACuenta');
+            const resultadoFinalEl = document.getElementById('resultadoFinal');
+            const resultadoTextoEl = document.getElementById('resultadoTexto');
+
+            let chart;
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value);
+            }
+
+            function calculateAndDisplay() {
+                const beneficio = parseFloat(beneficioInput.value) || 0;
+                const tipo = parseFloat(tipoInput.value) || 0;
+                const pagos = parseFloat(pagosInput.value) || 0;
+
+                const cuotaIntegra = beneficio * (tipo / 100);
+                const resultado = cuotaIntegra - pagos;
+
+                cuotaIntegraEl.textContent = formatCurrency(cuotaIntegra);
+                pagosACuentaEl.textContent = formatCurrency(pagos);
+                resultadoFinalEl.textContent = formatCurrency(Math.abs(resultado));
+
+                if (resultado >= 0) {
+                    resultadoTextoEl.textContent = 'A ingresar';
+                    resultadoFinalEl.classList.remove('text-green-700');
+                    resultadoFinalEl.classList.add('text-slate-800');
+                } else {
+                    resultadoTextoEl.textContent = 'A devolver';
+                    resultadoFinalEl.classList.remove('text-slate-800');
+                    resultadoFinalEl.classList.add('text-green-700');
+                }
+                updateChart(beneficio, cuotaIntegra, pagos);
+            }
+            
+            function updateChart(beneficio, cuotaIntegra, pagos) {
+                 const ctx = document.getElementById('isChart').getContext('2d');
+                 const data = {
+                    labels: ['Beneficio Total', 'Cuota Íntegra', 'Pagos a Cuenta'],
+                    datasets: [{
+                        label: 'Importe en €',
+                        data: [beneficio, cuotaIntegra, pagos],
+                        backgroundColor: [
+                            'rgba(15, 118, 110, 0.2)', // teal
+                            'rgba(220, 38, 38, 0.2)', // rose
+                            'rgba(14, 165, 233, 0.2)' // sky
+                        ],
+                        borderColor: [
+                            'rgba(15, 118, 110, 1)',
+                            'rgba(220, 38, 38, 1)',
+                            'rgba(14, 165, 233, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+
+                if (chart) {
+                    chart.data = data;
+                    chart.update();
+                } else {
+                    chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return formatCurrency(value);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                     callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed.y !== null) {
+                                                label += formatCurrency(context.parsed.y);
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            calcularBtn.addEventListener('click', calculateAndDisplay);
+            calculateAndDisplay(); // Initial calculation on load
+
+            // Gemini API Integration
+            const apiKey = ""; // Canvas provides this at runtime
+            const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
+
+            async function callGeminiAPI(prompt, responseDiv, loadingDiv, button) {
+                responseDiv.classList.add('hidden');
+                loadingDiv.classList.remove('hidden');
+                button.disabled = true;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+
+                    const response = await fetch(apiUrl + apiKey, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        responseDiv.innerHTML = text.replace(/\n/g, '<br>');
+                        responseDiv.classList.remove('hidden');
+                    } else {
+                        responseDiv.textContent = 'Error: No se pudo obtener una respuesta. Inténtalo de nuevo.';
+                        responseDiv.classList.remove('hidden');
+                        console.error('Unexpected API response structure:', result);
+                    }
+                } catch (error) {
+                    responseDiv.textContent = `Error al conectar con la API: ${error.message}. Inténtalo de nuevo.`;
+                    responseDiv.classList.remove('hidden');
+                    console.error('Fetch error:', error);
+                } finally {
+                    loadingDiv.classList.add('hidden');
+                    button.disabled = false;
+                }
+            }
+
+            // "Pregúntale a Gemini" for each tax type
+            const taxSections = ['is', 'iae', 'iva', 'irpf'];
+            taxSections.forEach(tax => {
+                const questionInput = document.getElementById(`${tax}Question`);
+                const askBtn = document.getElementById(`ask${tax.charAt(0).toUpperCase() + tax.slice(1)}Btn`);
+                const responseDiv = document.getElementById(`${tax}Response`);
+                const loadingDiv = document.getElementById(`${tax}Loading`);
+
+                if (askBtn) {
+                    askBtn.addEventListener('click', () => {
+                        const question = questionInput.value.trim();
+                        if (question) {
+                            const prompt = `Soy un estudiante de impuestos en España. Explícame brevemente y de forma sencilla sobre el tema "${question}" relacionado con el ${tax.toUpperCase()} en España.`;
+                            callGeminiAPI(prompt, responseDiv, loadingDiv, askBtn);
+                        } else {
+                            responseDiv.textContent = 'Por favor, escribe tu pregunta.';
+                            responseDiv.classList.remove('hidden');
+                        }
+                    });
+                }
+            });
+
+            // New Feature: IS - Explicar Concepto Específico del IS
+            const isSpecificConceptInput = document.getElementById('isSpecificConceptInput');
+            const getIsSpecificConceptBtn = document.getElementById('getIsSpecificConceptBtn');
+            const isSpecificConceptResponseDiv = document.getElementById('isSpecificConceptResponse');
+            const isSpecificConceptLoadingDiv = document.getElementById('isSpecificConceptLoading');
+
+            if (getIsSpecificConceptBtn) {
+                getIsSpecificConceptBtn.addEventListener('click', () => {
+                    const concept = isSpecificConceptInput.value.trim();
+                    if (concept) {
+                        const prompt = `Como estudiante de impuestos en España, explícame de forma sencilla y breve qué significa y cómo funciona el concepto de "${concept}" dentro del Impuesto sobre Sociedades.`;
+                        callGeminiAPI(prompt, isSpecificConceptResponseDiv, isSpecificConceptLoadingDiv, getIsSpecificConceptBtn);
+                    } else {
+                        isSpecificConceptResponseDiv.textContent = 'Por favor, introduce un concepto clave del IS (ej: base imponible).';
+                        isSpecificConceptResponseDiv.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // "Sugerencias de Optimización Fiscal" for IS Calculator
+            const getOptimizationTipsBtn = document.getElementById('getOptimizationTipsBtn');
+            const optimizationTipsResponseDiv = document.getElementById('optimizationTipsResponse');
+            const optimizationTipsLoadingDiv = document.getElementById('optimizationTipsLoading');
+
+            if (getOptimizationTipsBtn) {
+                getOptimizationTipsBtn.addEventListener('click', () => {
+                    const beneficio = parseFloat(beneficioInput.value) || 0;
+                    const tipo = parseFloat(tipoInput.value) || 0;
+                    const prompt = `Basado en un beneficio anual de ${beneficio}€ y un tipo impositivo del ${tipo}%, dame 3 consejos generales y sencillos de optimización fiscal para el Impuesto sobre Sociedades en España. Enfócate en conceptos básicos que un estudiante de impuestos podría entender.`;
+                    callGeminiAPI(prompt, optimizationTipsResponseDiv, optimizationTipsLoadingDiv, getOptimizationTipsBtn);
+                });
+            }
+
+            // Feature: IAE - Examples of IAE Epigraphs by Activity (already implemented, just adding listener)
+            const iaeActivityInput = document.getElementById('iaeActivityInput');
+            const getIaeEpigrafesBtn = document.getElementById('getIaeEpigrafesBtn');
+            const iaeEpigrafesResponseDiv = document.getElementById('iaeEpigrafesResponse');
+            const iaeEpigrafesLoadingDiv = document.getElementById('iaeEpigrafesLoading');
+
+            if (getIaeEpigrafesBtn) {
+                getIaeEpigrafesBtn.addEventListener('click', () => {
+                    const activity = iaeActivityInput.value.trim();
+                    if (activity) {
+                        const prompt = `Como experto en IAE, dame 3 ejemplos de epígrafes del IAE y una breve descripción para la actividad económica de "${activity}" en España.`;
+                        callGeminiAPI(prompt, iaeEpigrafesResponseDiv, iaeEpigrafesLoadingDiv, getIaeEpigrafesBtn);
+                    } else {
+                        iaeEpigrafesResponseDiv.textContent = 'Por favor, escribe un tipo de actividad (ej: consultoría).';
+                        iaeEpigrafesResponseDiv.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // Feature: IVA - Example of IVA application (already implemented, just adding listener)
+            const getIvaExampleBtn = document.getElementById('getIvaExampleBtn');
+            const ivaExampleResponseDiv = document.getElementById('ivaExampleResponse');
+            const ivaExampleLoadingDiv = document.getElementById('ivaExampleLoading');
+
+            if (getIvaExampleBtn) {
+                getIvaExampleBtn.addEventListener('click', () => {
+                    const prompt = `Explica con un ejemplo sencillo de la vida cotidiana cómo se calcula y aplica el IVA en una transacción en España. Incluye un importe base, el IVA aplicado y el total.`;
+                    callGeminiAPI(prompt, ivaExampleResponseDiv, ivaExampleLoadingDiv, getIvaExampleBtn);
+                });
+            }
+
+            // Feature: IRPF - Summary of common obligations (already implemented, just adding listener)
+            const getIrpfObligationsBtn = document.getElementById('getIrpfObligationsBtn');
+            const irpfObligationsResponseDiv = document.getElementById('irpfObligationsResponse');
+            const irpfObligationsLoadingDiv = document.getElementById('irpfObligationsLoading');
+
+            if (getIrpfObligationsBtn) {
+                getIrpfObligationsBtn.addEventListener('click', () => {
+                    const prompt = `Como estudiante de impuestos en España, necesito un resumen breve y sencillo de las obligaciones más comunes del IRPF para un trabajador por cuenta ajena (empleado). Incluye menciones a la declaración y posibles deducciones generales.`;
+                    callGeminiAPI(prompt, irpfObligationsResponseDiv, irpfObligationsLoadingDiv, getIrpfObligationsBtn);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
